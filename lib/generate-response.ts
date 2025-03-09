@@ -15,12 +15,13 @@ export const generateResponse = async (
   updateStatus?: (status: string) => void
 ) => {
   const { text } = await generateText({
-    model: bedrock("anthropic.claude-3-5-sonnet-20241022-v2:0"),
+    model: bedrock("anthropic.claude-3-5-sonnet-20240620-v1:0"),
     system: `You are a Slack bot assistant. Keep your responses concise and to the point.
     - Do not tag users.
     - Current date is: ${new Date().toISOString().split("T")[0]}
     `,
     messages,
+    maxSteps: 10,
     tools: {
       getWeather: tool({
         description: "Get the current weather at a location",
