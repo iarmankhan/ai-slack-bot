@@ -1,8 +1,8 @@
-import { WebClient } from '@slack/web-api';
-import { CoreMessage } from 'ai'
-import crypto from 'crypto'
+import { WebClient } from "@slack/web-api";
+import { CoreMessage } from "ai";
+import crypto from "crypto";
 
-const signingSecret = process.env.SLACK_SIGNING_SECRET!
+const signingSecret = process.env.SLACK_SIGNING_SECRET!;
 
 export const client = new WebClient(process.env.SLACK_BOT_TOKEN);
 
@@ -11,37 +11,37 @@ export async function isValidSlackRequest({
   request,
   rawBody,
 }: {
-  request: Request
-  rawBody: string
+  request: Request;
+  rawBody: string;
 }) {
   // console.log('Validating Slack request')
-  const timestamp = request.headers.get('X-Slack-Request-Timestamp')
-  const slackSignature = request.headers.get('X-Slack-Signature')
+  const timestamp = request.headers.get("X-Slack-Request-Timestamp");
+  const slackSignature = request.headers.get("X-Slack-Signature");
   // console.log(timestamp, slackSignature)
 
   if (!timestamp || !slackSignature) {
-    console.log('Missing timestamp or signature')
-    return false
+    console.log("Missing timestamp or signature");
+    return false;
   }
 
   // Prevent replay attacks on the order of 5 minutes
   if (Math.abs(Date.now() / 1000 - parseInt(timestamp)) > 60 * 5) {
-    console.log('Timestamp out of range')
-    return false
+    console.log("Timestamp out of range");
+    return false;
   }
 
-  const base = `v0:${timestamp}:${rawBody}`
+  const base = `v0:${timestamp}:${rawBody}`;
   const hmac = crypto
-    .createHmac('sha256', signingSecret)
+    .createHmac("sha256", signingSecret)
     .update(base)
-    .digest('hex')
-  const computedSignature = `v0=${hmac}`
+    .digest("hex");
+  const computedSignature = `v0=${hmac}`;
 
   // Prevent timing attacks
   return crypto.timingSafeEqual(
     Buffer.from(computedSignature),
     Buffer.from(slackSignature)
-  )
+  );
 }
 
 export const verifyRequest = async ({
@@ -72,7 +72,7 @@ export const updateStatusUtil = (channel: string, thread_ts: string) => {
 export async function getThread(
   channel_id: string,
   thread_ts: string,
-  botUserId: string,
+  botUserId: string
 ): Promise<CoreMessage[]> {
   const { messages } = await client.conversations.replies({
     channel: channel_id,
@@ -80,17 +80,14 @@ export async function getThread(
     limit: 50,
   });
 
-  // Ensure we have messages
-
   if (!messages) throw new Error("No messages found in thread");
 
-  const result = messages
+  // First convert all messages to CoreMessage format
+  const allMessages = messages
     .map((message) => {
       const isBot = !!message.bot_id;
       if (!message.text) return null;
 
-      // For app mentions, remove the mention prefix
-      // For IM messages, keep the full text
       let content = message.text;
       if (!isBot && content.includes(`<@${botUserId}>`)) {
         content = content.replace(`<@${botUserId}> `, "");
@@ -103,7 +100,19 @@ export async function getThread(
     })
     .filter((msg): msg is CoreMessage => msg !== null);
 
-  return result;
+  // Find the index of the last user message
+  const lastUserMessageIndex = allMessages
+    .map((msg, index) => ({ role: msg.role, index }))
+    .filter((item) => item.role === "user")
+    .pop()?.index;
+
+  if (lastUserMessageIndex === undefined) {
+    // If no user messages found, return empty array or handle as needed
+    return [];
+  }
+
+  // Only return messages up to and including the last user message
+  return allMessages.slice(0, lastUserMessageIndex + 1);
 }
 
 export const getBotId = async () => {
@@ -114,3 +123,106 @@ export const getBotId = async () => {
   }
   return botUserId;
 };
+
+export const getChannelMessages = async (
+  channelId: string,
+  limit: number = 10
+) => {
+  const { messages } = await client.conversations.history({
+    channel: channelId,
+    limit: limit,
+  });
+  return messages;
+};
+
+export interface Channel {
+  id: string;
+  name: string;
+  is_private: boolean;
+  is_archived: boolean;
+}
+
+interface User {
+  id: string;
+  name: string;
+  real_name?: string;
+  is_bot: boolean;
+}
+
+export async function listChannels(nameFilter?: string): Promise<Channel[]> {
+  try {
+    const results: Channel[] = [];
+    let cursor: string | undefined;
+
+    do {
+      const response = await client.conversations.list({
+        cursor,
+        types: "public_channel,private_channel",
+        exclude_archived: true,
+        limit: 100,
+      });
+
+      const channels =
+        response.channels?.map((channel) => ({
+          id: channel.id!,
+          name: channel.name!,
+          is_private: channel.is_private || false,
+          is_archived: channel.is_archived || false,
+        })) || [];
+
+      results.push(...channels);
+      cursor = response.response_metadata?.next_cursor;
+    } while (cursor);
+
+    if (nameFilter) {
+      const normalizedFilter = nameFilter.toLowerCase();
+      return results.filter((channel) =>
+        channel.name.toLowerCase().includes(normalizedFilter)
+      );
+    }
+
+    return results;
+  } catch (error) {
+    console.error("Error listing channels:", error);
+    throw error;
+  }
+}
+
+export async function listUsers(nameFilter?: string): Promise<User[]> {
+  try {
+    const results: User[] = [];
+    let cursor: string | undefined;
+
+    do {
+      const response = await client.users.list({
+        cursor,
+        limit: 100,
+      });
+
+      const users =
+        response.members?.map((user) => ({
+          id: user.id!,
+          name: user.name!,
+          real_name: user.real_name,
+          is_bot: user.is_bot || false,
+        })) || [];
+
+      results.push(...users);
+      cursor = response.response_metadata?.next_cursor;
+    } while (cursor);
+
+    if (nameFilter) {
+      const normalizedFilter = nameFilter.toLowerCase();
+      return results.filter(
+        (user) =>
+          user.name.toLowerCase().includes(normalizedFilter) ||
+          user.real_name?.toLowerCase().includes(normalizedFilter)
+      );
+    }
+
+    return results;
+  } catch (error) {
+    console.error("Error listing users:", error);
+    throw error;
+  }
+}

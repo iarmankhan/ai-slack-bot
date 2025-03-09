@@ -4,7 +4,7 @@ import { generateResponse } from "./generate-response";
 
 const updateStatusUtil = async (
   initialStatus: string,
-  event: AppMentionEvent,
+  event: AppMentionEvent
 ) => {
   const initialMessage = await client.chat.postMessage({
     channel: event.channel,
@@ -27,7 +27,7 @@ const updateStatusUtil = async (
 
 export async function handleNewAppMention(
   event: AppMentionEvent,
-  botUserId: string,
+  botUserId: string
 ) {
   console.log("Handling app mention");
   if (event.bot_id || event.bot_id === botUserId || event.bot_profile) {
@@ -45,7 +45,7 @@ export async function handleNewAppMention(
   } else {
     const result = await generateResponse(
       [{ role: "user", content: event.text }],
-      updateMessage,
+      updateMessage
     );
     updateMessage(result);
   }
