@@ -17,6 +17,7 @@
     "@vercel/functions": "^2.0.0",
     "ai": "^4.1.46",
     "exa-js": "^1.4.10",
+    "slackify-markdown": "^4.4.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {

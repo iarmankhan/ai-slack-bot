@@ -5,6 +5,7 @@ import { getWeatherTool } from "./tools/get-weather";
 import { listChannelsTool } from "./tools/list-channels";
 import { listUsersTool } from "./tools/list-users";
 import { getWebSearchTool } from "./tools/search-web";
+import slackify from "slackify-markdown";
 
 const bedrock = createAmazonBedrock({
   region: process.env.AWS_REGION,
@@ -36,5 +37,5 @@ export const generateResponse = async (
   });
 
   // Convert markdown to Slack mrkdwn format
-  return text.replace(/\[(.*?)\]\((.*?)\)/g, "<$2|$1>").replace(/\*\*/g, "*");
+  return slackify(text);
 };
