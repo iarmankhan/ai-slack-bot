@@ -1,25 +1,25 @@
-# AI SDK Slackbot
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fnicoalbanese%2Fai-sdk-slackbot&env=SLACK_BOT_TOKEN,SLACK_SIGNING_SECRET,OPENAI_API_KEY,EXA_API_KEY&envDescription=API%20keys%20needed%20for%20application&envLink=https%3A%2F%2Fgithub.com%2Fnicoalbanese%2Fai-sdk-slackbot%3Ftab%3Dreadme-ov-file%234-set-environment-variables&project-name=ai-sdk-slackbot)
+# AI Slack bot
 
 An AI-powered chatbot for Slack powered by the [AI SDK by Vercel](https://sdk.vercel.ai/docs).
 
 ## Features
 
 - Integrates with [Slack's API](https://api.slack.com) for easy Slack communication
-- Use any LLM with the AI SDK ([easily switch between providers](https://sdk.vercel.ai/providers/ai-sdk-providers))
+- Powered by [AWS Bedrock](https://aws.amazon.com/bedrock/) for reliable and scalable AI responses
 - Works both with app mentions and as an assistant in direct messages
 - Maintains conversation context within both threads and direct messages
 - Built-in tools for enhanced capabilities:
   - Real-time weather lookup
   - Web search (powered by [Exa](https://exa.ai))
+  - List channels and users in the workspace
+  - Get messages from a specific channel
 - Easily extensible architecture to add custom tools (e.g., knowledge search)
 
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) 18+ installed
 - Slack workspace with admin privileges
-- [OpenAI API key](https://platform.openai.com/api-keys)
+- [AWS Bedrock](https://aws.amazon.com/bedrock/) account
 - [Exa API key](https://exa.ai) (for web search functionality)
 - A server or hosting platform (e.g., [Vercel](https://vercel.com)) to deploy the bot
 
@@ -55,6 +55,9 @@ pnpm install
   - `im:history`
   - `im:read`
   - `im:write`
+  - `channels:read`
+  - `channels:history`
+  - `users:read`
 
 - Install the app to your workspace and note down the "Bot User OAuth Token"
 
@@ -67,8 +70,10 @@ Create a `.env` file in the root of your project with the following:
 SLACK_BOT_TOKEN=xoxb-your-bot-token
 SLACK_SIGNING_SECRET=your-signing-secret
 
-# OpenAI Credentials
-OPENAI_API_KEY=your-openai-api-key
+# AWS Credentials
+AWS_ACCESS_KEY_ID=your-aws-access-key
+AWS_SECRET_ACCESS_KEY=your-aws-secret-key
+AWS_REGION=your-aws-region
 
 # Exa API Key (for web search functionality)
 EXA_API_KEY=your-exa-api-key
@@ -81,7 +86,7 @@ Replace the placeholder values with your actual tokens.
 - If building locally, follow steps in the Local Development section to tunnel your local environment and then copy the tunnel URL.
 - If deploying to Vercel, follow the instructions in the Production Deployment section and copy your deployment URL.
 
-### 6. Update your Slack App configuration:
+### 6. Update your Slack App configuration
 
 Go to your [Slack App settings](https://api.slack.com/apps)
 
@@ -99,7 +104,7 @@ Go to your [Slack App settings](https://api.slack.com/apps)
 
 ## Local Development
 
-Use the [Vercel CLI](https://vercel.com/docs/cli) and [untun](https://github.com/unjs/untun) to test out this project locally:
+Use the [Vercel CLI](https://vercel.com/docs/cli) and [untun](https://github.com/unjs/untun) to test out this project   locally:
 
 ```sh
 pnpm i -g vercel
@@ -130,7 +135,9 @@ Make sure to modify the [subscription URL](./README.md/#enable-slack-events) to 
 
    - `SLACK_BOT_TOKEN`
    - `SLACK_SIGNING_SECRET`
-   - `OPENAI_API_KEY`
+   - `AWS_ACCESS_KEY_ID`
+   - `AWS_SECRET_ACCESS_KEY`
+   - `AWS_REGION`
    - `EXA_API_KEY`
 
 4. After deployment, Vercel will provide you with a production URL
@@ -166,18 +173,14 @@ The bot maintains context within both threads and direct messages, so it can fol
    - Example: "Search for the latest news about AI technology"
    - You can also specify a domain: "Search for the latest sports news on bbc.com"
 
-### Extending with New Tools
+3. **List Channels**: The bot can list all channels in the workspace.
+   - Example: "List all channels in the workspace"
 
-The chatbot is built with an extensible architecture using the [AI SDK's tool system](https://sdk.vercel.ai/docs/ai-sdk-core/tools-and-tool-calling). You can easily add new tools such as:
+4. **List Users**: The bot can list all users in the workspace.
+   - Example: "List all users in the workspace"
 
-- Knowledge base search
-- Database queries
-- Custom API integrations
-- Company documentation search
-
-To add a new tool, extend the tools object in the `lib/ai.ts` file following the existing pattern.
-
-You can also disable any of the existing tools by removing the tool in the `lib/ai.ts` file.
+5. **Get Messages from a Channel**: The bot can get messages from a specific channel.
+   - Example: "Get messages from the #general channel"
 
 ## License
 
